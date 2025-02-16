@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -94,18 +96,16 @@ class _QRViewExampleState extends State<QRViewExample> {
     });
   }
 
-  void _showErrorDialog(String message, bool safe) {
+  void _showAlertDialog(String title, String message, bool safe,Function action, List<Widget> customActions) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: <Widget>[
+        title: Text(title),
+        content: Text(message, style: TextStyle(color: safe ? Colors.black : Colors.red),),
+        actions: customActions.length > 0 ? customActions : <Widget>[
           TextButton(
             child: const Text('OK'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: action(),
           ),
         ],
       ),
@@ -157,14 +157,15 @@ class _QRViewExampleState extends State<QRViewExample> {
             actions: <Widget>[
               if (safe)
                 ...[TextButton(
-                  child: const Text('Buka link', style: TextStyle(color: Colors.blue),),
+                  child: const Text('Buka di browser', style: TextStyle(color: Colors.blue),),
                   style: TextButton.styleFrom(backgroundColor: Colors.blue[50]),
                   onPressed: () {
                     _urlLauncher(url);
+                    Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: const Text('cancel'),
+                  child: const Text('cancel', style: TextStyle(color: Colors.blueGrey),),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -172,13 +173,31 @@ class _QRViewExampleState extends State<QRViewExample> {
               else
                 ...[
                   TextButton(
-                    child: const Text('Tetap Buka Link'),
+                    child: const Text('Tetap buka di browser', style: TextStyle(color: Colors.red)),
+                    style: TextButton.styleFrom(backgroundColor: Colors.red[100]),
                     onPressed: () {
                       Navigator.of(context).pop();
+                      _showAlertDialog("Apakah anda yakin?", "Halaman yang akan anda kunjungi memiliki ancaman keamanan perangkat anda", false, () {}, <Widget>[
+                          TextButton(
+                            child: const Text('Tetap kunjungi', style: TextStyle(color: Colors.red),),
+                            style: TextButton.styleFrom(backgroundColor: Colors.red[100]),
+                            onPressed: () {
+                              _urlLauncher(url);
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          TextButton(
+                            child: const Text('cancel', style: TextStyle(color: Colors.blueGrey),),
+                            onPressed: () => {
+                              Navigator.of(context).pop()
+                            },
+                          ),
+                        ]
+                      );
                     },
                   ),
                   TextButton(
-                    child: const Text('OK'),
+                    child: const Text('cancel', style: TextStyle(color: Colors.blueGrey),),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -188,10 +207,14 @@ class _QRViewExampleState extends State<QRViewExample> {
           ),
         );
       } else {
-        _showErrorDialog('Error: Unable to scan the URL with VirusTotal.', false);
+        _showAlertDialog('Error', 'Error: Unable to scan the URL with VirusTotal.', false, () {
+          Navigator.of(context).pop();
+        }, <Widget>[]);
       }
     } catch (e) {
-      _showErrorDialog('Error: $e', true);
+      _showAlertDialog('Error', 'Error: $e', true, () {
+        Navigator.of(context).pop();
+      }, <Widget>[]);
     }
 
     @override
